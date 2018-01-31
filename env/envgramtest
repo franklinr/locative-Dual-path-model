@@ -1,0 +1,95 @@
+categories{  # these are the semantic categories that are used for selecting words for messages
+LIVING     NOUN man woman cat dog boy girl father mother 
+THEMEALL   NOUN apple ball chair drink eraser fork glue ham
+THEMEBTR   NOUN apple ball chair drink
+THEMEBTE   NOUN glue ham eraser fork
+THEMECTR   NOUN chair drink eraser fork
+THEMECTE   NOUN glue ham apple ball
+THEMEDTR   NOUN glue ham chair drink
+THEMEDTE   NOUN apple ball eraser fork
+LOCALL     NOUN apartment box case drain envelope floor glass house
+LOCBTR     NOUN apartment box case drain
+LOCBTE     NOUN glass house envelope floor
+LOCCTR     NOUN case drain envelope floor
+LOCCTE     NOUN glass house apartment box
+LOCDTR     NOUN glass house case drain
+LOCDTE     NOUN apartment box envelope floor
+INTRANSVERB VERB sleep jump walk run
+GTRANS     VERB carry eat hit push
+DATIVEVERB  VERB give throw show present
+ALTVERBB    VERBB brush cram crowd daub 
+ALTVERBC    VERBC jam pile rub splash 
+ALTVERBD    VERBD spread squirt stuff wad
+POURVERB    VERBE drizzle stick expel pour
+FILLVERB    VERBA fill plug soak bombard
+WITH	    WITH with
+PREP	    PREP onto into
+TO	    TO to
+DET        DET the
+PER	    PER .
+#event semantics
+XX	    XX
+YY	    YY
+ZZ	    ZZ
+REM         REM
+#roles:	    A X Y Z
+}
+
+constructions{  ## these are the message-sentence pairs.  
+
+###nonalternating
+
+#TL CLASS (grammatical)
+mess: A=POURVERB X=LIVING Y=THEMEALL Z=LOCALL E=XX,YY,ZZ LABEL=ETLg
+sent: the X0 A0 the Y0 onto the Z0 .
+#     the girl pour the apple onto the apartment
+
+#TL CLASS (ungrammatical)
+mess: A=POURVERB X=LIVING Y=THEMEALL Z=LOCALL E=XX,ZZ,YY LABEL=ELTu
+sent: the X0 A0 the Z0 with the Y0 .
+#     the girl pour the apartment with the apple
+
+#LT CLASS (grammatical)
+mess: A=FILLVERB X=LIVING Y=THEMEALL Z=LOCALL E=XX,ZZ,YY LABEL=ALTg 
+sent: the X0 A0 the Z0 with the Y0 .
+#     the girl fill the apartment with the apple
+
+#LT CLASS (ungrammatical)
+mess: A=FILLVERB X=LIVING Y=THEMEALL Z=LOCALL E=XX,YY,ZZ LABEL=ATLu
+sent: the X0 A0 the Y0 onto the Z0 .
+#     the girl fill the apple onto the apartment
+
+###alternating
+
+mess: A=ALTVERBB X=LIVING Y=THEMEBTE Z=LOCBTE E=XX,ZZ,YY LABEL=BLT
+sent: the X0 A0 the Z0 with the Y0 .
+#     the girl brush the glass with the glue
+
+mess: A=ALTVERBB X=LIVING Y=THEMEBTE Z=LOCBTE E=XX,YY,ZZ LABEL=BTL
+sent: the X0 A0 the Y0 onto the Z0 .
+#     the girl brush the glue onto the glass
+
+mess: A=ALTVERBC X=LIVING Y=THEMECTE Z=LOCCTE E=XX,ZZ,YY LABEL=CLT
+sent: the X0 A0 the Z0 with the Y0 .
+#     the girl jam drain with the drink
+
+mess: A=ALTVERBC X=LIVING Y=THEMECTE Z=LOCCTE E=XX,YY,ZZ LABEL=CTL
+sent: the X0 A0 the Y0 onto the Z0 .
+#     the girl jam the drink onto the drain
+
+mess: A=ALTVERBD X=LIVING Y=THEMEDTE Z=LOCDTE E=XX,ZZ,YY LABEL=DLT
+sent: the X0 A0 the Z0 with the Y0 .
+#     the girl spread the envelope with the eraser
+ 
+mess: A=ALTVERBD X=LIVING Y=THEMEDTE Z=LOCDTE E=XX,YY,ZZ LABEL=DTL
+sent: the X0 A0 the Y0 onto the Z0 .
+#     the girl spread the eraser onto the envelope
+
+}
+
+sent-rewrite{  ## these rewrite rules are applied only to the sentence and can be used to implement some of the language specific changes that are not represented in the message.
+
+#changes onto -> into
+s/onto (\S+) (glass|house|case|drain)/into $1 $2/; 
+
+}

@@ -1,0 +1,9 @@
+if [ $1 == "-r" ]
+then
+  echo $@
+fi
+echo $@ > .folders
+echo ${1:10}
+Rscript -e "knitr::knit2html('modelstats.Rmd',output='stat${1:10}.html')"
+
+open stat${1:10}.html

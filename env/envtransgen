@@ -1,0 +1,105 @@
+categories{  # these are the semantic categories that are used for selecting words for messages
+LIVING     NOUN man woman cat dog boy girl father mother 
+THEMEALL   NOUN apple ball chair drink eraser fork glue ham
+THEMEBTR   NOUN apple ball chair drink
+THEMEBTE   NOUN glue ham eraser fork
+THEMECTR   NOUN chair drink eraser fork
+THEMECTE   NOUN glue ham apple ball
+THEMEDTR   NOUN glue ham chair drink
+THEMEDTE   NOUN apple ball eraser fork
+LOCALL     NOUN apartment box case drain envelope floor glass house
+LOCBTR     NOUN apartment box case drain
+LOCBTE     NOUN glass house envelope floor
+LOCCTR     NOUN case drain envelope floor
+LOCCTE     NOUN glass house apartment box
+LOCDTR     NOUN glass house case drain
+LOCDTE     NOUN apartment box envelope floor
+INTRANSVERB VERB sleep jump walk run
+GTRANS     VERB carry eat hit push
+DATIVEVERB  VERB give throw show present
+ALTVERBB    VERBB brush cram crowd daub 
+ALTVERBC    VERBC jam pile rub splash 
+ALTVERBD    VERBD spread squirt stuff wad
+POURVERB    VERBE drizzle stick expel pour
+FILLVERB    VERBA fill plug soak bombard
+WITH	    WITH with
+PREP	    PREP onto into
+TO	    TO to
+DET        DET the
+PER	    PER .
+#event semantics
+XX	    XX
+YY	    YY
+ZZ	    ZZ
+REM         REM
+#roles:	    A X Y Z
+}
+
+constructions{  ## these are the message-sentence pairs.  
+
+###locatives
+
+#TL locative      the girl pour the apple onto the apartment
+mess: FREQ=25 A=POURVERB X=LIVING Y=THEMEALL Z=LOCALL E=XX,YY,ZZ LABEL=ETL
+sent: the X0 A0 the Y0 onto the Z0 .
+
+#LT locative     the girl fill the apartment with the apple
+mess: FREQ=25 A=FILLVERB X=LIVING Y=THEMEALL Z=LOCALL E=XX,ZZ,YY LABEL=ALT
+sent: the X0 A0 the Z0 with the Y0 .
+
+###transitives
+
+#ALT 1 transitive LOCATION       the woman brush the apartment 
+mess: FREQ=75 A=ALTVERBB X=LIVING Y=LOCBTR E=REM,XX,YY LABEL=BL
+sent:   the X0 A0 the Y0 .
+
+#ALT 1 transitive THEME       the woman brush the apartment 
+mess: FREQ=25 A=ALTVERBB X=LIVING Y=THEMEBTR E=REM,XX,YY LABEL=BT
+sent:   the X0 A0 the Y0 .
+
+#ALT 2 transitive LOCATION       the woman jam the apartment
+mess: FREQ=50 A=ALTVERBC X=LIVING Y=LOCCTR E=REM,XX,YY LABEL=CL
+sent:   the X0 A0 the Y0 .
+
+#ALT 2 transitive  THEME        the woman jam the apple
+mess: FREQ=50 A=ALTVERBC X=LIVING Y=THEMECTR E=REM,XX,YY LABEL=CT
+sent:   the X0 A0 the Y0 .
+
+#ALT 3 transitive  THEME MORE       the woman spread the apple
+mess: FREQ=25 A=ALTVERBD X=LIVING Y=LOCDTR E=REM,XX,YY LABEL=DL
+sent:   the X0 A0 the Y0 .
+
+#ALT 3 transitive  THEME MORE       the woman spread the apple
+mess: FREQ=75 A=ALTVERBD X=LIVING Y=THEMEDTR E=REM,XX,YY LABEL=DT
+sent:   the X0 A0 the Y0 .
+
+###other constructions
+
+#simple transitive       the woman eat the apple
+mess: FREQ=300 A=GTRANS X=LIVING Y=THEMEALL E=XX,YY LABEL=GT
+sent:   the X0 A0 the Y0 .
+
+#intransitive
+mess: FREQ=25 A=INTRANSVERB Y=LIVING E=YY
+sent:   the Y0 A0 .
+#       cat sleep -s
+
+#prepositional dative
+mess: FREQ=25 A=DATIVEVERB X=LIVING Y=THEMEALL Z=LIVING E=XX,YY,ZZ 
+sent:   the X0 A0 the Y0 to the Z0 .
+#       girl throw -s stick to dog
+
+#double object dative
+mess: FREQ=25 A=DATIVEVERB X=LIVING Y=THEMEALL Z=LIVING E=XX,ZZ,YY 
+sent:   the X0 A0 the Z0 the Y0 .
+#       girl throw -s   dog   stick
+
+}
+
+sent-rewrite{  ## these rewrite rules are applied only to the sentence and can be used to implement some of the language specific changes that are not represented in the message.
+
+#changes onto -> into
+s/onto (\S+) (glass|house|case|drain)/into $1 $2/; 
+s/the (apple|eraser|drink|glue)/$1/g if rand(100) < 25;	
+
+}

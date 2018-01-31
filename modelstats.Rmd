@@ -1,0 +1,164 @@
+```{r}
+library(ggplot2)
+require(knitr)
+require(lme4)
+
+# convert figure into apa figure
+apaformat <- function(p){
+  p = p + theme_bw()
+  p = p + theme(axis.text = element_text())
+  p = p + theme(axis.title.y = element_text())
+  p = p + theme(axis.title.x = element_text())
+  p = p + theme(legend.key = element_rect(colour = "white"))
+  p = p + theme(panel.border= element_rect(colour="white"))
+  p = p + theme(axis.line=element_line(colour="black")) 
+  p = p + theme(legend.text = element_text())
+  p = p + theme(legend.title = element_text())
+  p = p + theme(panel.grid.minor=element_blank(), panel.grid.major=element_blank())
+  p = p + theme(axis.title.y = element_text(vjust=0.3))
+  p = p + theme(axis.title.x = element_text(vjust=-0.3))
+  return(p)
+}
+#RUN THIS FROM COMMAND LINE TO GENERATE ALLDATA.CSV
+setMyWD <- function(){
+  datafile=file.choose()     ## choose a file and datafile to path
+  print(datafile)       
+  dir = dirname(datafile)    ## get folder of file
+  print(dir)
+  setwd(dir)            ## sets your working directory/folder to dir
+  args <- dir(pattern="sim*",recursive=FALSE)
+  return(args)
+}
+# args = setMyWD()
+argsline = read.table(".folders",sep="}")
+args = as.character(argsline[[1]])
+filelist = gsub(' ','/sum*test* ',args)
+#args <- commandArgs(trailingOnly = TRUE)
+#filelist = paste(args,"/sum*test*",collapse=" ",sep="")
+print(filelist)
+system("echo run,subj,param,epoch,type,cond1,cond2,cond3,count,total,prop > alldata.csv")
+system(paste("zgrep '##' ",filelist," | perl -nle 's/^sum/sim0s0sum/;s/.+?sum/sim0s0,/ if !/sim/;s/test.*?:/,/;s/sum/,/;s/sim([0-9]+)s([0-9]+)/$1,$2,/;print if !/##results/' >> alldata.csv",sep=""))
+
+data = read.csv("alldata.csv")
+
+colnames
+## save the alldata under the name of the sim
+modelname = sub("/", "", paste(data$param[1],sep=""))
+write.csv(data,paste("data",modelname,".csv",sep=""))
+#setwd(dirname(file.choose()))
+# data = read.csv(file.choose())
+
+print("subjects ")
+data$subj = factor(data$subj)
+print(nlevels(data$subj))
+
+## codes that are used for all analyses
+novdata = subset(data,cond1 != "v")
+names(novdata)[names(novdata)=="cond2"]<-"class"
+names(novdata)[names(novdata)=="cond3"]<-"str"
+novdata$prop = as.numeric(as.character(novdata$prop))*100
+novdata$epoch = as.numeric(as.character(novdata$epoch))
+novdata$class = factor(novdata$class, levels = c("VERBA", "VERBB", "VERBC", "VERBD","VERBE"),labels=c("A","B","C","D","E"))
+# remove odd participants
+novdata$epochnum = novdata$epoch/4000
+
+# average by subject for mixed models analysis
+meandatasubj = aggregate(prop ~ epoch + epochnum + str + class  + subj + type, novdata, mean)
+propdatasubj = subset(meandatasubj, str == "LT" )
+propdatasubj$accLT=propdatasubj$prop
+propdatasubj$accTL = subset(meandatasubj, str == "TL")$prop
+propdatasubj$propLT = propdatasubj$accLT/(propdatasubj$accLT+propdatasubj$accTL)
+# compute empirical logit from propLT
+propdatasubj$elogitLT = log((propdatasubj$propLT + 0.5)/(1 - propdatasubj$propLT + 0.5) )
+propdatasubj$class2 = NA  # classB  change the ordering, so that beta is positive
+propdatasubj$class2[propdatasubj$class == "B"] = 1
+propdatasubj$class2[propdatasubj$class == "C"] = 0
+propdatasubj$class2[propdatasubj$class == "D"] = -1   
+
+# now select sentence accuracy data and aggregate for figure
+sentacc = subset(propdatasubj, type == "##zsent")
+sentacc.means = aggregate(propLT ~ epoch  + class, sentacc, mean)
+map = aes(x=epoch, y=propLT, linetype=class, shape=class)
+p = ggplot(sentacc.means, map)
+p = apaformat(p)
+p = p + geom_line()+geom_point()
+p = p + ylim(0,1)
+p = p + ylab("Proportion LT sentences")
+p = p + xlab("Epoch")
+p = p + labs(linetype = "Verb\nClass", shape = "Verb\nClass")
+print(p)
+figname=paste(data$param, ".tiff")
+ggsave(paste("figACC",modelname,".tiff", sep = ""),width = 7.5, height = 3.5, dpi=500)
+
+sentacc$epochnum = sentacc$epochnum
+sentaccBCD = subset(sentacc, class %in% c("B","C","D") & epochnum > 0)
+sentaccBCD$class = factor(sentaccBCD$class)
+sentaccBCD$subj = factor(sentaccBCD$subj)
+
+full.lmer = lmer(elogitLT ~ epochnum*class2 + (1 +  epochnum+class2 |subj), sentaccBCD)
+print(summary(full.lmer))
+# do model comparison
+if (nlevels(sentaccBCD$subj) > 17){
+  #using update insures that all models are identical except for one element
+  maineffects.lmer <- update(full.lmer, . ~ . -epochnum:class2)
+  print(summary(maineffects.lmer))
+  print(anova(full.lmer, maineffects.lmer))
+  epochonly.lmer <- update(maineffects.lmer, . ~ . -class2)
+  print(summary(epochonly.lmer))
+  print(anova(maineffects.lmer, epochonly.lmer))
+  intercept.lmer  = update(epochonly.lmer, . ~ . -epochnum)
+  print(summary(intercept.lmer))
+  print(anova(epochonly.lmer, intercept.lmer))
+}
+
+#TL bias analyses at epoch 8000
+#overall
+propTL8000=subset(sentacc, epoch == 8000 & propLT != "NaN")
+100-(100*mean(propTL8000$propLT))
+#Class E
+E8000=subset(propTL8000, class == "E")
+100-(100*mean(E8000$propLT))
+#Class A
+A8000=subset(propTL8000, class == "A")
+100-(100*mean(A8000$propLT))
+
+#SSE analyses################################################################
+datasse = subset(propdatasubj, type =="##sse")
+#Code verb classes numerically
+datasse$classN = 2 # for class A
+datasse$classN[datasse$class == "B"] = 1
+datasse$classN[datasse$class == "C"] = 0
+datasse$classN[datasse$class == "D"] = -1
+datasse$classN[datasse$class == "E"] = -2
+datasse$diffTLLT = datasse$accTL - datasse$accLT
+
+#Page 37: SSE figure (Figure 10)
+propmeansse = aggregate(diffTLLT ~ epoch + class, datasse, mean)
+map = aes(x=epoch, y=diffTLLT, linetype=class, shape=class)
+p = ggplot(propmeansse, map)
+p = p + geom_line() + geom_point()
+p = p + ylim(-1.1,1.1)
+p = p + xlab("Epoch")
+p = p + ylab("Error")
+p = p + labs(linetype = "Verb\nClass", shape = "Verb\nClass")
+p = apaformat(p)
+print(p)
+ggsave(paste("figSSE",modelname,".tiff",sep=""), width = 7.5, height = 3.5, dpi=500)
+
+#Page 37: SSE mixed model
+fullsse.lmer = lmer(diffTLLT ~ epochnum*classN + (1 + epochnum+classN|subj),datasse)
+print(summary(fullsse.lmer))
+if (nlevels(datasse$subj) > 17){
+  #using update insures that all models are identical except for one element
+  maineffectssse.lmer <- update(fullsse.lmer, . ~ . -epochnum:classN)
+  print(summary(maineffectssse.lmer))
+  print(anova(fullsse.lmer, maineffectssse.lmer))
+  epochonlysse.lmer <- update(maineffectssse.lmer, . ~ . -classN)
+  print(summary(epochonlysse.lmer))
+  print(anova(maineffectssse.lmer, epochonlysse.lmer))
+  interceptsse.lmer  = update(epochonlysse.lmer, . ~ . -epochnum)
+  print(summary(interceptsse.lmer))
+  print(anova(epochonlysse.lmer, interceptsse.lmer))
+}
+
+```

@@ -1,0 +1,5 @@
+SET -s 0 envtransgen & & -m 50 | rmtransmes2.perl
+SET -s 0 envnopostverbtheme & & -m 50 | rmtransmes2.perl
+SET -s 0 envnodetomit & & -m 50 | rmtransmes2.perl
+SET -s 0 envtransgen &set directWordHidden 1& -m 50 | rmtransmes2.perl
+
